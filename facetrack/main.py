@@ -1,13 +1,16 @@
 import cv2
 import time
-from smbus2 import SMBus
-from mlx90614 import MLX90614
+import math
+import base64
+
+# from smbus2 import SMBus
+# from mlx90614 import MLX90614
 
 # Load the cascade
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 # Load the sensor
-sensor = MLX90614(SMBus(1), address=0x5A)
+# sensor = MLX90614(SMBus(1), address=0x5A)
 
 # Check for all accessible camera
 arrayCap = 0
@@ -53,16 +56,31 @@ else:
             # Check if face is within boundaries
             if faces[0][0] > int((img.shape[1]/2)-borderSize/2) and faces[0][0]+faces[0][2] < int(img.shape[1]/2+borderSize/2) and faces[0][1] > int((img.shape[0]/2)-borderSize/2) and faces[0][1]+faces[0][3] < int(img.shape[0]/2+borderSize/2):
                 # Draw border around face and tag
-                temperatureFloat = round(sensor.get_object_1(),2)
-                tempText = str(temperatureFloat) + " C "
+                # temperatureFloat = round(sensor.get_object_1(),2)
+                temperatureFloat = 40
+                # tempText = str(temperatureFloat) + " C "
+                tempText = str(curTime) + " " + str(interval)
                 cv2.rectangle(img, (faces[0][0], faces[0][1]), (faces[0][0]+faces[0][2], faces[0][1]+faces[0][3]), (255, 0, 0), 1)
                 cv2.putText(img, tempText, (faces[0][0]+faces[0][2], faces[0][1]+faces[0][3]), cv2.FONT_HERSHEY_PLAIN, 0.75, (0,255,0), 1)
+                
                 if curTime > interval + durationCapture:
-                    imgText = "img_" + time.asctime() + "_" + str(temperatureFloat) + "C.jpg"
+                    # imgText = "img_" + time.asctime() + "_" + str(temperatureFloat) + "C.jpg"
+                    imgText = "uploads/img_" + str(math.floor(curTime)) + ".jpg"
                     cv2.imwrite(imgText, img)
                     interval = curTime + durationCapture
-#                     if temperatureFloat > 40:
-#                         API
+                    if temperatureFloat >= 38:
+                        with open(imgText, "rb") as binary_file:
+                            binary_file_data = binary_file.read()
+                            base64_encoded_data = base64.b64encode(binary_file_data)
+                            base64_message = base64_encoded_data.decode('utf-8')
+                            print(base64_message)
+
+                            base64_message_bytes = base64_message.encode('utf-8')
+                            with open('decode_test/decoded_image.jpg', 'wb') as file_to_save:
+                                decoded_image_data = base64.decodebytes(base64_message_bytes)
+                                file_to_save.write(decoded_image_data)
+
+                            
         else:
             interval = curTime
         title = 'camera ' + str(arrayCap + 1)
