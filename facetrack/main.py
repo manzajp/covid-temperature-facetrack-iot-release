@@ -2,6 +2,10 @@ import cv2
 import time
 import math
 import base64
+from django.test import client
+import requests
+import socket
+print(socket.gethostbyname(socket.gethostname()))
 
 # from smbus2 import SMBus
 # from mlx90614 import MLX90614
@@ -56,16 +60,21 @@ else:
             # Check if face is within boundaries
             if faces[0][0] > int((img.shape[1]/2)-borderSize/2) and faces[0][0]+faces[0][2] < int(img.shape[1]/2+borderSize/2) and faces[0][1] > int((img.shape[0]/2)-borderSize/2) and faces[0][1]+faces[0][3] < int(img.shape[0]/2+borderSize/2):
                 # Draw border around face and tag
+
                 # temperatureFloat = round(sensor.get_object_1(),2)
-                temperatureFloat = 40
-                # tempText = str(temperatureFloat) + " C "
-                tempText = str(curTime) + " " + str(interval)
+
+                temperatureFloat = 40.0
+                tempText = str(temperatureFloat) + " C "
+
                 cv2.rectangle(img, (faces[0][0], faces[0][1]), (faces[0][0]+faces[0][2], faces[0][1]+faces[0][3]), (255, 0, 0), 1)
                 cv2.putText(img, tempText, (faces[0][0]+faces[0][2], faces[0][1]+faces[0][3]), cv2.FONT_HERSHEY_PLAIN, 0.75, (0,255,0), 1)
                 
                 if curTime > interval + durationCapture:
-                    # imgText = "img_" + time.asctime() + "_" + str(temperatureFloat) + "C.jpg"
-                    imgText = "uploads/img_" + str(math.floor(curTime)) + ".jpg"
+                    
+                    imgText = "uploads/img_" + str(math.floor(curTime)) + "_" + str(temperatureFloat) + "C.jpg"
+                    
+                    # imgText = "uploads/img_" + str(math.floor(curTime)) + ".jpg"
+                    
                     cv2.imwrite(imgText, img)
                     interval = curTime + durationCapture
                     if temperatureFloat >= 38:
@@ -73,13 +82,18 @@ else:
                             binary_file_data = binary_file.read()
                             base64_encoded_data = base64.b64encode(binary_file_data)
                             base64_message = base64_encoded_data.decode('utf-8')
-                            print(base64_message)
 
-                            base64_message_bytes = base64_message.encode('utf-8')
-                            with open('decode_test/decoded_image.jpg', 'wb') as file_to_save:
-                                decoded_image_data = base64.decodebytes(base64_message_bytes)
-                                file_to_save.write(decoded_image_data)
+                            # with open('decoded_image.jpg', 'wb') as f:
+                            #     decoded_image_data = base64.b64decode(base64_message)
+                            #     f.write(decoded_image_data)
 
+                            _url='http://localhost:8000/camera/images/'
+
+                            # payload = {'imageName': imgText,'image':base64_message}
+                            payload = {'imageName': imgText,'image':base64_message,'ipAddress':socket.gethostbyname(socket.gethostname()), 'temp': temperatureFloat}
+                            # payload = {'imageName': imgText,'image':base64_message,'ipAddress':'127.0.0.1', 'temp': temperatureFloat}
+                            r = requests.post(url=_url, data=payload)
+                            print(r.text)
                             
         else:
             interval = curTime
